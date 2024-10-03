@@ -1,6 +1,15 @@
-
-
-
+---
+jupyter:
+  jupytext:
+    cell_metadata_filter: -all
+    formats: ipynb,md
+    main_language: python
+    text_representation:
+      extension: .md
+      format_name: markdown
+      format_version: '1.3'
+      jupytext_version: 1.16.4
+---
 
 # Logistic Regression, LDA, QDA, and KNN
 
@@ -10,92 +19,85 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/intro-stat-learning/ISLP_labs/v2.2?labpath=Ch04-classification-lab.ipynb)
 
-
-
-
-
 ## The Stock Market Data
 
-In this lab we will examine the `Smarket` 
+In this lab we will examine the `Smarket`
 data, which is part of the `ISLP`
 library. This data set consists of percentage returns for the S&P 500
 stock index over 1,250 days, from the beginning of 2001 until the end
 of 2005. For each date, we have recorded the percentage returns for
 each of the five previous trading days,  `Lag1`  through
- `Lag5`. We have also recorded  `Volume`  (the number of
+`Lag5`. We have also recorded  `Volume`  (the number of
 shares traded on the previous day, in billions),  `Today`  (the
 percentage return on the date in question) and  `Direction`
 (whether the market was  `Up`  or  `Down`  on this date).
 
 We start by importing  our libraries at this top level; these are all imports we have seen in previous labs.
 
-```{python}
+```python
 import numpy as np
 import pandas as pd
-from matplotlib.pyplot import subplots
 import statsmodels.api as sm
 from ISLP import load_data
-from ISLP.models import (ModelSpec as MS,
-                         summarize)
+from ISLP.models import ModelSpec as MS
+from ISLP.models import summarize
+from matplotlib.pyplot import subplots
 ```
 
 We also collect together the new imports needed for this lab.
 
-```{python}
+```python
 from ISLP import confusion_table
 from ISLP.models import contrast
-from sklearn.discriminant_analysis import \
-     (LinearDiscriminantAnalysis as LDA,
-      QuadraticDiscriminantAnalysis as QDA)
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-
 ```
-
 
 Now we are ready to load the `Smarket` data.
 
-```{python}
-Smarket = load_data('Smarket')
+```python
+Smarket = load_data("Smarket")
 Smarket
 ```
+
 This gives a truncated listing of the data.
 We can see what the variable names are.
 
-```{python}
+```python
 Smarket.columns
 ```
+
 We compute the correlation matrix using the `corr()` method
 for data frames, which produces a matrix that contains all of
 the pairwise correlations among the variables.
- 
+
 By instructing `pandas` to use only numeric variables, the `corr()` method does not report a correlation for the `Direction`  variable because it is
- qualitative.
+qualitative.
 
-```{python}
+```python
 Smarket.corr(numeric_only=True)
-
 ```
+
 As one would expect, the correlations between the lagged return  variables and
 today’s return are close to zero.  The only substantial correlation is between  `Year`  and
- `Volume`. By plotting the data we see that  `Volume`
+`Volume`. By plotting the data we see that  `Volume`
 is increasing over time. In other words, the average number of shares traded
 daily increased from 2001 to 2005.
 
-
-```{python}
-Smarket.plot(y='Volume');
-
+```python
+Smarket.plot(y="Volume");
 ```
 
-
 ## Logistic Regression
+
 Next, we will fit a logistic regression model in order to predict
- `Direction`  using  `Lag1`  through  `Lag5`  and
- `Volume`. The `sm.GLM()`  function fits *generalized linear models*, a class of
+`Direction`  using  `Lag1`  through  `Lag5`  and
+`Volume`. The `sm.GLM()`  function fits *generalized linear models*, a class of
 models that includes logistic regression.  Alternatively,
 the function `sm.Logit()` fits a logistic regression
 model directly. The syntax of
@@ -104,18 +106,16 @@ that we must pass in the argument `family=sm.families.Binomial()`
 in order to tell `statsmodels` to run a logistic regression rather than some other
 type of generalized linear model.
 
-```{python}
-allvars = Smarket.columns.drop(['Today', 'Direction', 'Year'])
+```python
+allvars = Smarket.columns.drop(["Today", "Direction", "Year"])
 design = MS(allvars)
 X = design.fit_transform(Smarket)
-y = Smarket.Direction == 'Up'
-glm = sm.GLM(y,
-             X,
-             family=sm.families.Binomial())
+y = Smarket.Direction == "Up"
+glm = sm.GLM(y, X, family=sm.families.Binomial())
 results = glm.fit()
 summarize(results)
-
 ```
+
 The smallest *p*-value here is associated with  `Lag1`. The
 negative coefficient for this predictor suggests that if the market
 had a positive return yesterday, then it is less likely to go up
@@ -127,16 +127,15 @@ We use the `params`  attribute of `results`
 in order to access just the
 coefficients for this fitted model.
 
-```{python}
+```python
 results.params
-
 ```
+
 Likewise we can use the
 `pvalues`  attribute to access the *p*-values for the coefficients.
 
-```{python}
+```python
 results.pvalues
-
 ```
 
 The `predict()`  method of `results` can be used to predict the
@@ -149,11 +148,11 @@ As with linear regression, one can pass an optional `exog` argument consistent
 with a design matrix if desired. Here we have
 printed only the first ten probabilities.
 
-```{python}
+```python
 probs = results.predict()
 probs[:10]
-
 ```
+
 In order to make a prediction as to whether the market will go up or
 down on a particular day, we must convert these predicted
 probabilities into class labels,  `Up`  or  `Down`.  The
@@ -161,11 +160,11 @@ following two commands create a vector of class predictions based on
 whether the predicted probability of a market increase is greater than
 or less than 0.5.
 
-```{python}
-labels = np.array(['Down']*1250)
-labels[probs>0.5] = "Up"
-
+```python
+labels = np.array(["Down"] * 1250)
+labels[probs > 0.5] = "Up"
 ```
+
 The `confusion_table()`
 function from the `ISLP` package summarizes these predictions, showing   how
 many observations were correctly or incorrectly classified. Our function, which is adapted from a similar function
@@ -174,9 +173,8 @@ matrix and includes row and column labels.
 The `confusion_table()` function takes as first argument the
 predicted labels, and second argument the true labels.
 
-```{python}
+```python
 confusion_table(labels, Smarket.Direction)
-
 ```
 
 The diagonal elements of the confusion matrix indicate correct
@@ -188,14 +186,9 @@ function can be used to compute the fraction of days for which the
 prediction was correct. In this case, logistic regression correctly
 predicted the movement of the market 52.2% of the time.
 
-
-```{python}
-(507+145)/1250, np.mean(labels == Smarket.Direction)
-
+```python
+(507 + 145) / 1250, np.mean(labels == Smarket.Direction)
 ```
-
-
-
 
 At first glance, it appears that the logistic regression model is
 working a little better than random guessing. However, this result is
@@ -215,16 +208,14 @@ the market’s movements are unknown.
 To implement this strategy, we first create a Boolean vector
 corresponding to the observations from 2001 through 2004. We  then
 use this vector to create a held out data set of observations from
-2005.
+2005\.
 
-```{python}
-train = (Smarket.Year < 2005)
+```python
+train = Smarket.Year < 2005
 Smarket_train = Smarket.loc[train]
 Smarket_test = Smarket.loc[~train]
 Smarket_test.shape
-
 ```
-
 
 The object `train` is a vector of 1,250 elements, corresponding
 to the observations in our data set. The elements of the vector that
@@ -254,15 +245,12 @@ observations that correspond to dates before 2005. We then obtain predicted prob
 stock market going up for each of the days in our test set --- that is,
 for the days in 2005.
 
-```{python}
+```python
 X_train, X_test = X.loc[train], X.loc[~train]
 y_train, y_test = y.loc[train], y.loc[~train]
-glm_train = sm.GLM(y_train,
-                   X_train,
-                   family=sm.families.Binomial())
+glm_train = sm.GLM(y_train, X_train, family=sm.families.Binomial())
 results = glm_train.fit()
 probs = results.predict(exog=X_test)
-
 ```
 
 Notice that we have trained and tested our model on two completely
@@ -273,28 +261,26 @@ Finally, we compare the predictions for 2005 to the
 actual movements of the market over that time period.
 We will first store the test and training labels (recall `y_test` is binary).
 
-```{python}
+```python
 D = Smarket.Direction
 L_train, L_test = D.loc[train], D.loc[~train]
-
 ```
+
 Now we threshold the
 fitted probability at 50% to form
 our predicted labels.
 
-```{python}
-labels = np.array(['Down']*252)
-labels[probs>0.5] = 'Up'
+```python
+labels = np.array(["Down"] * 252)
+labels[probs > 0.5] = "Up"
 confusion_table(labels, L_test)
-
 ```
+
 The test accuracy is about 48% while the error rate is about 52%
 
-```{python}
+```python
 np.mean(labels == L_test), np.mean(labels != L_test)
-
 ```
-
 
 The `!=` notation means *not equal to*, and so the last command
 computes the test set error rate. The results are rather
@@ -308,7 +294,7 @@ striking it rich rather than writing a statistics textbook.)
 We recall that the logistic regression model had very underwhelming
 *p*-values associated with all of the predictors, and that the
 smallest *p*-value, though not very small, corresponded to
- `Lag1`. Perhaps by removing the variables that appear not to be
+`Lag1`. Perhaps by removing the variables that appear not to be
 helpful in predicting  `Direction`, we can obtain a more
 effective model. After all, using predictors that have no relationship
 with the response tends to cause a deterioration in the test error
@@ -319,28 +305,23 @@ regression using just  `Lag1`  and  `Lag2`, which seemed to
 have the highest predictive power in the original logistic regression
 model.
 
-```{python}
-model = MS(['Lag1', 'Lag2']).fit(Smarket)
+```python
+model = MS(["Lag1", "Lag2"]).fit(Smarket)
 X = model.transform(Smarket)
 X_train, X_test = X.loc[train], X.loc[~train]
-glm_train = sm.GLM(y_train,
-                   X_train,
-                   family=sm.families.Binomial())
+glm_train = sm.GLM(y_train, X_train, family=sm.families.Binomial())
 results = glm_train.fit()
 probs = results.predict(exog=X_test)
-labels = np.array(['Down']*252)
-labels[probs>0.5] = 'Up'
+labels = np.array(["Down"] * 252)
+labels[probs > 0.5] = "Up"
 confusion_table(labels, L_test)
-
 ```
-
 
 Let’s evaluate the overall accuracy as well as the accuracy within the days when
 logistic regression predicts an increase.
 
-```{python}
-(35+106)/252,106/(106+76)
-
+```python
+(35 + 106) / 252, 106 / (106 + 76)
 ```
 
 Now the results appear to be a little better: 56% of the daily
@@ -359,44 +340,38 @@ whether this small improvement was real or just due to random chance.
 Suppose that we want to predict the returns associated with particular
 values of  `Lag1`  and  `Lag2`. In particular, we want to
 predict  `Direction`  on a day when  `Lag1`  and
- `Lag2`  equal $1.2$ and $1.1$, respectively, and on a day when they
+`Lag2`  equal $1.2$ and $1.1$, respectively, and on a day when they
 equal $1.5$ and $-0.8$.  We do this using the `predict()`
 function.
 
-```{python}
-newdata = pd.DataFrame({'Lag1':[1.2, 1.5],
-                        'Lag2':[1.1, -0.8]});
+```python
+newdata = pd.DataFrame({"Lag1": [1.2, 1.5], "Lag2": [1.1, -0.8]})
 newX = model.transform(newdata)
 results.predict(newX)
-
 ```
-
 
 ## Linear Discriminant Analysis
 
-
 We begin by performing LDA on the  `Smarket`  data, using the function
-`LinearDiscriminantAnalysis()`, which we have abbreviated `LDA()`. We 
+`LinearDiscriminantAnalysis()`, which we have abbreviated `LDA()`. We
 fit the model using only the observations before 2005.
 
-```{python}
+```python
 lda = LDA(store_covariance=True)
-
 ```
 
-Since the `LDA` estimator automatically 
+Since the `LDA` estimator automatically
 adds an intercept, we should remove the column corresponding to the
 intercept in both `X_train` and `X_test`. We can also directly
 use the labels rather than the Boolean vectors `y_train`.
 
-```{python}
-X_train, X_test = [M.drop(columns=['intercept'])
-                   for M in [X_train, X_test]]
+```python
+X_train, X_test = (M.drop(columns=["intercept"]) for M in [X_train, X_test])
 lda.fit(X_train, L_train)
-
 ```
+
 Here we have used the list comprehensions introduced
-in Section~\ref{Ch3-linreg-lab:multivariate-goodness-of-fit}. Looking at our first line above, we see that the right-hand side is a list
+in Section~\\ref\{Ch3-linreg-lab:multivariate-goodness-of-fit}. Looking at our first line above, we see that the right-hand side is a list
 of length two. This is because the code `for M in [X_train, X_test]` iterates over a list
 of length two. While here we loop over a list,
 the list comprehension method works when looping over any iterable object.
@@ -411,57 +386,46 @@ a tendency for the previous 2 days’ returns to be negative on days
 when the market increases, and a tendency for the previous days’
 returns to be positive on days when the market declines.
 
-```{python}
+```python
 lda.means_
-
 ```
-
 
 The estimated prior probabilities are stored in the `priors_` attribute.
 The package `sklearn` typically uses this trailing `_` to denote
 a quantity estimated when using the `fit()` method. We can be sure of which
 entry corresponds to which label by looking at the `classes_` attribute.
 
-```{python}
+```python
 lda.classes_
-
 ```
-
 
 The LDA output indicates that $\hat\pi_{Down}=0.492$ and
 $\hat\pi_{Up}=0.508$.
 
-
-```{python}
+```python
 lda.priors_
-
 ```
-
 
 The linear discriminant vectors can be found in the `scalings_` attribute:
 
-```{python}
+```python
 lda.scalings_
-
 ```
 
-These values provide the linear combination of `Lag1`  and `Lag2`  that are used to form the LDA decision rule. In other words, these are the multipliers of the elements of $X=x$ in (\ref{Ch4:bayes.multi}).
-  If $-0.64\times `Lag1`  - 0.51 \times `Lag2` $ is large, then the LDA classifier will predict a market increase, and if it is small, then the LDA classifier will predict a market decline.
+These values provide the linear combination of `Lag1`  and `Lag2`  that are used to form the LDA decision rule. In other words, these are the multipliers of the elements of $X=x$ in (\\ref{Ch4:bayes.multi}).
+If $-0.64\times `Lag1`  - 0.51 \times `Lag2` $ is large, then the LDA classifier will predict a market increase, and if it is small, then the LDA classifier will predict a market decline.
 
-```{python}
+```python
 lda_pred = lda.predict(X_test)
-
 ```
 
 As we observed in our comparison of classification methods
- (Section~\ref{Ch4:comparison.sec}),  the LDA and logistic
+(Section~\\ref{Ch4:comparison.sec}),  the LDA and logistic
 regression predictions are almost identical.
 
-```{python}
+```python
 confusion_table(lda_pred, L_test)
-
 ```
-
 
 We can also estimate the
 probability of each class for
@@ -469,14 +433,12 @@ each point in a training set. Applying a 50% threshold to the posterior probabil
 being in class one allows us to
 recreate the predictions contained in `lda_pred`.
 
-```{python}
+```python
 lda_prob = lda.predict_proba(X_test)
 np.all(
-       np.where(lda_prob[:,1] >= 0.5, 'Up','Down') == lda_pred
-       )
-
+    np.where(lda_prob[:, 1] >= 0.5, "Up", "Down") == lda_pred,
+)
 ```
-
 
 Above, we used the `np.where()`  function that
 creates an array with value `'Up'` for indices where
@@ -484,13 +446,11 @@ the second column of `lda_prob` (the estimated
 posterior probability of `'Up'`) is greater than 0.5.
 For problems with more than two classes the labels are chosen as the class whose posterior probability is highest:
 
-```{python}
+```python
 np.all(
-       [lda.classes_[i] for i in np.argmax(lda_prob, 1)] == lda_pred
-       )
-
+    [lda.classes_[i] for i in np.argmax(lda_prob, 1)] == lda_pred,
+)
 ```
-
 
 If we wanted to use a posterior probability threshold other than
 50% in order to make predictions, then we could easily do so. For
@@ -501,9 +461,8 @@ We know that the first column of `lda_prob` corresponds to the
 label `Down` after having checked the `classes_` attribute, hence we use
 the column index 0 rather than 1 as we did above.
 
-```{python}
-np.sum(lda_prob[:,0] > 0.9)
-
+```python
+np.sum(lda_prob[:, 0] > 0.9)
 ```
 
 No days in 2005 meet that threshold! In fact, the greatest posterior
@@ -513,7 +472,7 @@ The LDA classifier above is the first classifier from the
 `sklearn` library. We will use several other objects
 from this library. The objects
 follow a common structure that simplifies tasks such as cross-validation,
-which we will see in Chapter~\ref{Ch5:resample}. Specifically,
+which we will see in Chapter~\\ref\{Ch5:resample}. Specifically,
 the methods first create a generic classifier without
 referring to any data. This classifier is then fit
 to data with the `fit()`  method and predictions are
@@ -524,54 +483,49 @@ makes it possible to cleanly copy the classifier so that it can be fit
 on different data; e.g. different training sets arising in cross-validation.
 This standard pattern also allows for a predictable formation of workflows.
 
-
-
 ## Quadratic Discriminant Analysis
+
 We will now fit a QDA model to the  `Smarket`  data. QDA is
 implemented via
 `QuadraticDiscriminantAnalysis()`
 in the `sklearn` package, which we abbreviate to `QDA()`.
 The syntax is very similar to `LDA()`.
 
-```{python}
+```python
 qda = QDA(store_covariance=True)
 qda.fit(X_train, L_train)
-
 ```
 
 The `QDA()` function will again compute `means_` and `priors_`.
 
-```{python}
+```python
 qda.means_, qda.priors_
-
 ```
 
 The `QDA()` classifier will estimate one covariance per class. Here is the
 estimated covariance in the first class:
 
-```{python}
+```python
 qda.covariance_[0]
-
 ```
+
 The output contains the group means. But it does not contain the
 coefficients of the linear discriminants, because the QDA classifier
 involves a quadratic, rather than a linear, function of the
 predictors. The `predict()`  function works in exactly the
 same fashion as for LDA.
 
-```{python}
+```python
 qda_pred = qda.predict(X_test)
 confusion_table(qda_pred, L_test)
-
 ```
+
 Interestingly, the QDA predictions are accurate almost 60% of the
 time, even though the 2005 data was not used to fit the model.
 
-```{python}
+```python
 np.mean(qda_pred == L_test)
-
 ```
-
 
 This level of accuracy is quite impressive for stock market data, which is
 known to be quite hard to model accurately.  This suggests that the
@@ -581,88 +535,77 @@ regression.  However, we recommend evaluating this method’s
 performance on a larger test set before betting that this approach
 will consistently beat the market!
 
-
 ## Naive Bayes
+
 Next, we fit a naive Bayes model to the `Smarket` data. The syntax is
 similar to that of `LDA()` and `QDA()`. By
 default, this implementation `GaussianNB()` of the naive Bayes classifier models each
 quantitative feature using a Gaussian distribution. However, a kernel
 density method can also be used to estimate the distributions.
 
-```{python}
+```python
 NB = GaussianNB()
 NB.fit(X_train, L_train)
-
 ```
-
 
 The classes are stored as `classes_`.
 
-```{python}
+```python
 NB.classes_
-
 ```
-
 
 The class prior probabilities are stored in the `class_prior_` attribute.
 
-```{python}
+```python
 NB.class_prior_
-
 ```
-
 
 The parameters of the features can be found in the `theta_` and `var_` attributes. The number of rows
 is equal to the number of classes, while the number of columns is equal to the number of features.
 We see below that the mean for feature `Lag1` in the `Down` class is 0.043.
 
-```{python}
+```python
 NB.theta_
-
 ```
 
 Its variance is 1.503.
 
-```{python}
+```python
 NB.var_
-
 ```
+
 How do we know the names of these attributes? We use `NB?` (or `?NB`).
 
 We can easily verify the mean computation:
 
-```{python}
-X_train[L_train == 'Down'].mean()
-
+```python
+X_train[L_train == "Down"].mean()
 ```
-
 
 Similarly for the variance:
 
-```{python}
-X_train[L_train == 'Down'].var(ddof=0)
-
+```python
+X_train[L_train == "Down"].var(ddof=0)
 ```
+
 Since `NB()` is a classifier in the `sklearn` library, making predictions
 uses the same syntax as for `LDA()` and `QDA()` above.
 
-```{python}
+```python
 nb_labels = NB.predict(X_test)
 confusion_table(nb_labels, L_test)
-
 ```
 
 Naive Bayes performs well on these data, with accurate predictions over 59% of the time. This is slightly worse than QDA, but much better than LDA.
 
 As for `LDA`, the `predict_proba()` method estimates the probability that each observation belongs to a particular class.
 
-```{python}
+```python
 NB.predict_proba(X_test)[:5]
-
 ```
 
-
 ## K-Nearest Neighbors
+
 We will now perform KNN using the `KNeighborsClassifier()` function. This function works similarly
 to the other model-fitting functions that we have
 encountered thus far.
@@ -673,37 +616,35 @@ using the `fit` method. New
 predictions are formed using the `predict` method
 of the object returned by `fit()`.
 
-```{python}
+```python
 knn1 = KNeighborsClassifier(n_neighbors=1)
-X_train, X_test = [np.asarray(X) for X in [X_train, X_test]]
+X_train, X_test = (np.asarray(X) for X in [X_train, X_test])
 knn1.fit(X_train, L_train)
 knn1_pred = knn1.predict(X_test)
 confusion_table(knn1_pred, L_test)
-
 ```
 
 The results using $K=1$ are not very good, since only $50%$ of the
 observations are correctly predicted. Of course, it may be that $K=1$
 results in an overly-flexible fit to the data.
 
-```{python}
-(83+43)/252, np.mean(knn1_pred == L_test)
-
+```python
+(83 + 43) / 252, np.mean(knn1_pred == L_test)
 ```
 
 We repeat the
 analysis below using $K=3$.
 
-```{python}
+```python
 knn3 = KNeighborsClassifier(n_neighbors=3)
 knn3_pred = knn3.fit(X_train, L_train).predict(X_test)
 np.mean(knn3_pred == L_test)
 ```
+
 The results have improved slightly. But increasing *K* further
 provides no further improvements. It appears that for these data, and this train/test split,
 QDA gives the best results of the methods that we have examined so
 far.
-
 
 KNN does not perform well on the `Smarket`  data, but it often does provide impressive results. As an example we will apply the KNN approach to the `Caravan`  data set, which is part of the `ISLP` library.  This data set includes 85
 predictors that measure demographic characteristics for 5,822
@@ -712,30 +653,25 @@ indicates whether or not a given individual purchases a caravan
 insurance policy. In this data set, only 6% of people purchased
 caravan insurance.
 
-```{python}
-Caravan = load_data('Caravan')
+```python
+Caravan = load_data("Caravan")
 Purchase = Caravan.Purchase
 Purchase.value_counts()
-
 ```
-
 
 The method `value_counts()` takes a `pd.Series` or `pd.DataFrame` and returns
 a `pd.Series` with the corresponding counts
 for each unique element. In this case `Purchase` has only `Yes` and `No` values
 and the method returns how many values of each there are.
 
-```{python}
+```python
 348 / 5822
-
 ```
-
 
 Our features will include all columns except `Purchase`.
 
-```{python}
-feature_df = Caravan.drop(columns=['Purchase'])
-
+```python
+feature_df = Caravan.drop(columns=["Purchase"])
 ```
 
 Because the KNN classifier predicts the class of a given test
@@ -753,7 +689,7 @@ to our intuition that a salary difference of 1,000 USD is quite small
 compared to an age difference of 50 years.  Furthermore, the
 importance of scale to the KNN classifier leads to another issue: if
 we measured  `salary`  in Japanese yen, or if we measured
- `age`  in minutes, then we’d get quite different classification
+`age`  in minutes, then we’d get quite different classification
 results from what we get if these two variables are measured in
 dollars and years.
 
@@ -764,12 +700,10 @@ using
 the `StandardScaler()`
 transformation.
 
-```{python}
-scaler = StandardScaler(with_mean=True,
-                        with_std=True,
-                        copy=True)
-
+```python
+scaler = StandardScaler(with_mean=True, with_std=True, copy=True)
 ```
+
 The argument `with_mean` indicates whether or not
 we should subtract the mean, while `with_std` indicates
 whether or not we should scale the columns to have standard
@@ -783,23 +717,20 @@ below, the parameters for the scaling are computed and
 stored in `scaler`, while the second line actually
 constructs the standardized set of features.
 
-```{python}
+```python
 scaler.fit(feature_df)
 X_std = scaler.transform(feature_df)
-
 ```
+
 Now every column of `feature_std` below has a standard deviation of
 one and a mean of zero.
 
-```{python}
-feature_std = pd.DataFrame(
-                 X_std,
-                 columns=feature_df.columns);
+```python
+feature_std = pd.DataFrame(X_std, columns=feature_df.columns)
 feature_std.std()
-
 ```
 
-Notice that the standard deviations are not quite $1$ here; this is again due to some procedures using the $1/n$ convention for variances (in this case `scaler()`), while others use $1/(n-1)$ (the `std()` method). See the footnote on page~\pageref{Ch4-varformula}.
+Notice that the standard deviations are not quite $1$ here; this is again due to some procedures using the $1/n$ convention for variances (in this case `scaler()`), while others use $1/(n-1)$ (the `std()` method). See the footnote on page~\\pageref\{Ch4-varformula}.
 In this case it does not matter, as long as the variables are all on the same scale.
 
 Using the function `train_test_split()`  we now split the observations into a test set,
@@ -807,28 +738,25 @@ containing 1000 observations, and a training set containing the remaining
 observations. The argument `random_state=0` ensures that we get
 the same split each time we rerun the code.
 
-```{python}
-(X_train,
- X_test,
- y_train,
- y_test) = train_test_split(np.asarray(feature_std),
-                            Purchase,
-                            test_size=1000,
-                            random_state=0)
-
+```python
+(X_train, X_test, y_train, y_test) = train_test_split(
+    np.asarray(feature_std),
+    Purchase,
+    test_size=1000,
+    random_state=0,
+)
 ```
+
 `?train_test_split` reveals that the non-keyword arguments can be `lists`, `arrays`, `pandas dataframes` etc that all have the same length (`shape[0]`) and hence are *indexable*. In this case they are the dataframe `feature_std` and the response variable `Purchase`.
- {Note that we have converted `feature_std` to an `ndarray` to address a bug in `sklearn`.}
+{Note that we have converted `feature_std` to an `ndarray` to address a bug in `sklearn`.}
 We fit a KNN model on the training data using $K=1$,
 and evaluate its performance on the test data.
 
-```{python}
+```python
 knn1 = KNeighborsClassifier(n_neighbors=1)
 knn1_pred = knn1.fit(X_train, y_train).predict(X_test)
 np.mean(y_test != knn1_pred), np.mean(y_test != "No")
-
 ```
-
 
 The KNN error rate on the 1,000 test observations is about $11%$.
 At first glance, this may appear to be fairly good. However, since
@@ -846,9 +774,8 @@ only to customers who are likely to buy it. So the overall error rate
 is not of interest. Instead, the fraction of individuals that are
 correctly predicted to buy insurance is of interest.
 
-```{python}
+```python
 confusion_table(knn1_pred, y_test)
-
 ```
 
 It turns out that KNN with $K=1$ does far better than random guessing
@@ -856,44 +783,42 @@ among the customers that are predicted to buy insurance. Among 62
 such customers, 9, or 14.5%, actually do purchase insurance.
 This is double the rate that one would obtain from random guessing.
 
-```{python}
-9/(53+9)
+```python
+9 / (53 + 9)
 ```
-
 
 ### Tuning Parameters
 
 The number of neighbors in KNN is referred to as a *tuning parameter*, also referred to as a *hyperparameter*.
 We do not know *a priori* what value to use. It is therefore of interest
 to see how the classifier performs on test data as we vary these
-parameters. This can be achieved with a `for` loop, described in Section~\ref{Ch2-statlearn-lab:for-loops}.
+parameters. This can be achieved with a `for` loop, described in Section~\\ref\{Ch2-statlearn-lab:for-loops}.
 Here we use a for loop to look at the accuracy of our classifier in the group predicted to purchase
 insurance as we vary the number of neighbors from 1 to 5:
 
-```{python}
-for K in range(1,6):
+```python
+for K in range(1, 6):
     knn = KNeighborsClassifier(n_neighbors=K)
     knn_pred = knn.fit(X_train, y_train).predict(X_test)
     C = confusion_table(knn_pred, y_test)
-    templ = ('K={0:d}: # predicted to rent: {1:>2},' +
-            '  # who did rent {2:d}, accuracy {3:.1%}')
-    pred = C.loc['Yes'].sum()
-    did_rent = C.loc['Yes','Yes']
-    print(templ.format(
-          K,
-          pred,
-          did_rent,
-          did_rent / pred))
-
+    templ = (
+        "K={0:d}: # predicted to rent: {1:>2},"
+        + "  # who did rent {2:d}, accuracy {3:.1%}"
+    )
+    pred = C.loc["Yes"].sum()
+    did_rent = C.loc["Yes", "Yes"]
+    print(templ.format(K, pred, did_rent, did_rent / pred))
 ```
+
 We see some variability ---  the numbers for `K=4` are very different from the rest.
 
 ### Comparison to Logistic Regression
+
 As a comparison, we can also fit a logistic regression model to the
 data. This can also be done
 with `sklearn`, though by default it fits
 something like the *ridge regression* version
-of logistic regression, which we introduce in Chapter~\ref{Ch6:varselect}. This can
+of logistic regression, which we introduce in Chapter~\\ref\{Ch6:varselect}. This can
 be modified by appropriately setting the argument `C` below. Its default
 value is 1 but by setting it to a very large number, the algorithm converges to the same solution as the usual (unregularized)
 logistic regression estimator discussed above.
@@ -905,13 +830,12 @@ the `summary` methods seen in `statsmodels`
 and our simplified version seen with `summarize` are not
 generally available for the classifiers in `sklearn`.
 
-```{python}
-logit = LogisticRegression(C=1e10, solver='liblinear')
+```python
+logit = LogisticRegression(C=1e10, solver="liblinear")
 logit.fit(X_train, y_train)
 logit_pred = logit.predict_proba(X_test)
-logit_labels = np.where(logit_pred[:,1] > .5, 'Yes', 'No')
+logit_labels = np.where(logit_pred[:, 1] > 0.5, "Yes", "No")
 confusion_table(logit_labels, y_test)
-
 ```
 
 We used the argument `solver='liblinear'` above to
@@ -927,45 +851,40 @@ results: we predict that 29 people will purchase insurance, and we are
 correct for about 31% of these people. This is almost five times
 better than random guessing!
 
-```{python}
-logit_labels = np.where(logit_pred[:,1]>0.25, 'Yes', 'No')
+```python
+logit_labels = np.where(logit_pred[:, 1] > 0.25, "Yes", "No")
 confusion_table(logit_labels, y_test)
 ```
 
-```{python}
-9/(20+9)
-
+```python
+9 / (20 + 9)
 ```
+
 ## Linear and Poisson Regression on the Bikeshare Data
-Here we fit linear and  Poisson regression models to the `Bikeshare` data, as described in Section~\ref{Ch4:sec:pois}.
+
+Here we fit linear and  Poisson regression models to the `Bikeshare` data, as described in Section~\\ref\{Ch4:sec:pois}.
 The response `bikers` measures the number of bike rentals per hour
 in Washington, DC in the period 2010--2012.
 
-```{python}
-Bike = load_data('Bikeshare')
-
+```python
+Bike = load_data("Bikeshare")
 ```
+
 Let's have a peek at the dimensions and names of the variables in this dataframe.
 
-```{python}
+```python
 Bike.shape, Bike.columns
-
 ```
 
 ### Linear Regression
 
 We begin by fitting a linear regression model to the data.
 
-```{python}
-X = MS(['mnth',
-        'hr',
-        'workingday',
-        'temp',
-        'weathersit']).fit_transform(Bike)
-Y = Bike['bikers']
+```python
+X = MS(["mnth", "hr", "workingday", "temp", "weathersit"]).fit_transform(Bike)
+Y = Bike["bikers"]
 M_lm = sm.OLS(Y, X).fit()
 summarize(M_lm)
-
 ```
 
 There are 24 levels in `hr` and 40 rows in all.
@@ -978,22 +897,20 @@ variables constant, there are on average about 7 more riders in
 February than in January. Similarly there are about 16.5 more riders
 in March than in January.
 
-The results seen in Section~\ref{sec:bikeshare.linear}
+The results seen in Section~\\ref{sec:bikeshare.linear}
 used a slightly different coding of the variables `hr` and `mnth`, as follows:
 
-```{python}
-hr_encode = contrast('hr', 'sum')
-mnth_encode = contrast('mnth', 'sum')
-
+```python
+hr_encode = contrast("hr", "sum")
+mnth_encode = contrast("mnth", "sum")
 ```
+
 Refitting again:
 
-```{python}
-X2 = MS([mnth_encode,
-         hr_encode,
-        'workingday',
-        'temp',
-        'weathersit']).fit_transform(Bike)
+```python
+X2 = MS([mnth_encode, hr_encode, "workingday", "temp", "weathersit"]).fit_transform(
+    Bike,
+)
 M2_lm = sm.OLS(Y, X2).fit()
 S2 = summarize(M2_lm)
 S2
@@ -1018,21 +935,18 @@ matter, provided that we interpret the  model output correctly in light
 of the coding used. For example, we see that the predictions from the
 linear model are the same regardless of coding:
 
-```{python}
-np.sum((M_lm.fittedvalues - M2_lm.fittedvalues)**2)
-
+```python
+np.sum((M_lm.fittedvalues - M2_lm.fittedvalues) ** 2)
 ```
 
 The sum of squared differences is zero. We can also see this using the
 `np.allclose()` function:
 
-```{python}
+```python
 np.allclose(M_lm.fittedvalues, M2_lm.fittedvalues)
-
 ```
 
-
-To reproduce the left-hand side of Figure~\ref{Ch4:bikeshare}
+To reproduce the left-hand side of Figure~\\ref\{Ch4:bikeshare}
 we must first obtain the coefficient estimates associated with
 `mnth`. The coefficients for January through November can be obtained
 directly from the `M2_lm` object. The coefficient for December
@@ -1040,60 +954,65 @@ must be explicitly computed as the negative sum of all the other
 months. We first extract all the coefficients for month from
 the coefficients of `M2_lm`.
 
-```{python}
-coef_month = S2[S2.index.str.contains('mnth')]['coef']
+```python
+coef_month = S2[S2.index.str.contains("mnth")]["coef"]
 coef_month
-
 ```
+
 Next, we append `Dec` as the negative of the sum of all other months.
 
-```{python}
-months = Bike['mnth'].dtype.categories
-coef_month = pd.concat([
-                       coef_month,
-                       pd.Series([-coef_month.sum()],
-                                  index=['mnth[Dec]'
-                                 ])
-                       ])
+```python
+months = Bike["mnth"].dtype.categories
+coef_month = pd.concat(
+    [
+        coef_month,
+        pd.Series(
+            [-coef_month.sum()],
+            index=[
+                "mnth[Dec]",
+            ],
+        ),
+    ],
+)
 coef_month
-
 ```
+
 Finally, to make the plot neater, we’ll just use the first letter of each month, which is the $6$th entry of each of
 the labels in the index.
 
-```{python}
-fig_month, ax_month = subplots(figsize=(8,8))
+```python
+fig_month, ax_month = subplots(figsize=(8, 8))
 x_month = np.arange(coef_month.shape[0])
-ax_month.plot(x_month, coef_month, marker='o', ms=10)
+ax_month.plot(x_month, coef_month, marker="o", ms=10)
 ax_month.set_xticks(x_month)
 ax_month.set_xticklabels([l[5] for l in coef_month.index], fontsize=20)
-ax_month.set_xlabel('Month', fontsize=20)
-ax_month.set_ylabel('Coefficient', fontsize=20);
-
+ax_month.set_xlabel("Month", fontsize=20)
+ax_month.set_ylabel("Coefficient", fontsize=20);
 ```
 
-Reproducing the  right-hand plot in Figure~\ref{Ch4:bikeshare}  follows a similar process.
+Reproducing the  right-hand plot in Figure~\\ref\{Ch4:bikeshare}  follows a similar process.
 
-```{python}
-coef_hr = S2[S2.index.str.contains('hr')]['coef']
-coef_hr = coef_hr.reindex(['hr[{0}]'.format(h) for h in range(23)])
-coef_hr = pd.concat([coef_hr,
-                     pd.Series([-coef_hr.sum()], index=['hr[23]'])
-                    ])
-
+```python
+coef_hr = S2[S2.index.str.contains("hr")]["coef"]
+coef_hr = coef_hr.reindex([f"hr[{h}]" for h in range(23)])
+coef_hr = pd.concat(
+    [
+        coef_hr,
+        pd.Series([-coef_hr.sum()], index=["hr[23]"]),
+    ],
+)
 ```
 
 We now make the hour plot.
 
-```{python}
-fig_hr, ax_hr = subplots(figsize=(8,8))
+```python
+fig_hr, ax_hr = subplots(figsize=(8, 8))
 x_hr = np.arange(coef_hr.shape[0])
-ax_hr.plot(x_hr, coef_hr, marker='o', ms=10)
+ax_hr.plot(x_hr, coef_hr, marker="o", ms=10)
 ax_hr.set_xticks(x_hr[::2])
 ax_hr.set_xticklabels(range(24)[::2], fontsize=20)
-ax_hr.set_xlabel('Hour', fontsize=20)
-ax_hr.set_ylabel('Coefficient', fontsize=20);
-
+ax_hr.set_xlabel("Hour", fontsize=20)
+ax_hr.set_ylabel("Coefficient", fontsize=20);
 ```
 
 ### Poisson Regression
@@ -1102,54 +1021,48 @@ Now we fit instead a Poisson regression model to the
 `Bikeshare` data. Very little changes, except that we now use the
 function `sm.GLM()` with the Poisson family specified:
 
-```{python}
+```python
 M_pois = sm.GLM(Y, X2, family=sm.families.Poisson()).fit()
-
 ```
 
-We can plot the coefficients associated with `mnth` and `hr`, in order to reproduce  Figure~\ref{Ch4:bikeshare.pois}. We first complete these coefficients as before.
+We can plot the coefficients associated with `mnth` and `hr`, in order to reproduce  Figure~\\ref{Ch4:bikeshare.pois}. We first complete these coefficients as before.
 
-```{python}
+```python
 S_pois = summarize(M_pois)
-coef_month = S_pois[S_pois.index.str.contains('mnth')]['coef']
-coef_month = pd.concat([coef_month,
-                        pd.Series([-coef_month.sum()],
-                                   index=['mnth[Dec]'])])
-coef_hr = S_pois[S_pois.index.str.contains('hr')]['coef']
-coef_hr = pd.concat([coef_hr,
-                     pd.Series([-coef_hr.sum()],
-                     index=['hr[23]'])])
+coef_month = S_pois[S_pois.index.str.contains("mnth")]["coef"]
+coef_month = pd.concat(
+    [coef_month, pd.Series([-coef_month.sum()], index=["mnth[Dec]"])],
+)
+coef_hr = S_pois[S_pois.index.str.contains("hr")]["coef"]
+coef_hr = pd.concat([coef_hr, pd.Series([-coef_hr.sum()], index=["hr[23]"])])
 ```
+
 The plotting is as before.
 
-```{python}
-fig_pois, (ax_month, ax_hr) = subplots(1, 2, figsize=(16,8))
-ax_month.plot(x_month, coef_month, marker='o', ms=10)
+```python
+fig_pois, (ax_month, ax_hr) = subplots(1, 2, figsize=(16, 8))
+ax_month.plot(x_month, coef_month, marker="o", ms=10)
 ax_month.set_xticks(x_month)
 ax_month.set_xticklabels([l[5] for l in coef_month.index], fontsize=20)
-ax_month.set_xlabel('Month', fontsize=20)
-ax_month.set_ylabel('Coefficient', fontsize=20)
-ax_hr.plot(x_hr, coef_hr, marker='o', ms=10)
+ax_month.set_xlabel("Month", fontsize=20)
+ax_month.set_ylabel("Coefficient", fontsize=20)
+ax_hr.plot(x_hr, coef_hr, marker="o", ms=10)
 ax_hr.set_xticklabels(range(24)[::2], fontsize=20)
-ax_hr.set_xlabel('Hour', fontsize=20)
-ax_hr.set_ylabel('Coefficient', fontsize=20);
-
+ax_hr.set_xlabel("Hour", fontsize=20)
+ax_hr.set_ylabel("Coefficient", fontsize=20);
 ```
+
 We compare the fitted values of the two models.
 The fitted values are stored in the `fittedvalues` attribute
 returned by the `fit()` method for both the linear regression and the Poisson
 fits. The linear predictors are stored as the attribute `lin_pred`.
 
-```{python}
+```python
 fig, ax = subplots(figsize=(8, 8))
-ax.scatter(M2_lm.fittedvalues,
-           M_pois.fittedvalues,
-           s=20)
-ax.set_xlabel('Linear Regression Fit', fontsize=20)
-ax.set_ylabel('Poisson Regression Fit', fontsize=20)
-ax.axline([0,0], c='black', linewidth=3,
-          linestyle='--', slope=1);
-
+ax.scatter(M2_lm.fittedvalues, M_pois.fittedvalues, s=20)
+ax.set_xlabel("Linear Regression Fit", fontsize=20)
+ax.set_ylabel("Poisson Regression Fit", fontsize=20)
+ax.axline([0, 0], c="black", linewidth=3, linestyle="--", slope=1);
 ```
 
 The predictions from the Poisson regression model are correlated with
@@ -1164,5 +1077,3 @@ with `family=sm.families.Binomial()` to perform logistic regression. Other
 choices for the `family` argument can be used to fit other types
 of GLMs. For instance, `family=sm.families.Gamma()` fits a Gamma regression
 model.
-
-

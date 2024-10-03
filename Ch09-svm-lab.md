@@ -1,5 +1,15 @@
-
- 
+---
+jupyter:
+  jupytext:
+    cell_metadata_filter: -all
+    formats: ipynb,md
+    main_language: python
+    text_representation:
+      extension: .md
+      format_name: markdown
+      format_version: '1.3'
+      jupytext_version: 1.16.4
+---
 
 # Support Vector Machines
 
@@ -9,35 +19,32 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/intro-stat-learning/ISLP_labs/v2.2?labpath=Ch09-svm-lab.ipynb)
 
-
 In this lab, we use the `sklearn.svm` library to demonstrate the support
 vector classifier and the support vector machine.
 
 We  import some of our usual libraries.
 
-```{python}
+```python
 import numpy as np
-from matplotlib.pyplot import subplots, cm
 import sklearn.model_selection as skm
-from ISLP import load_data, confusion_table
-
+from ISLP import confusion_table, load_data
+from matplotlib.pyplot import cm, subplots
 ```
+
 We also collect the new imports
 needed for this lab.
 
-```{python}
-from sklearn.svm import SVC
+```python
 from ISLP.svm import plot as plot_svm
 from sklearn.metrics import RocCurveDisplay
-
+from sklearn.svm import SVC
 ```
- 
+
 We will use the function `RocCurveDisplay.from_estimator()` to
 produce several ROC plots, using a shorthand `roc_curve`.
 
-```{python}
-roc_curve = RocCurveDisplay.from_estimator # shorthand
-
+```python
+roc_curve = RocCurveDisplay.from_estimator  # shorthand
 ```
 
 ## Support Vector Classifier
@@ -57,41 +64,32 @@ plot the resulting decision boundary. We begin by generating the
 observations, which belong to two classes, and checking whether the
 classes are linearly separable.
 
-```{python}
+```python
 rng = np.random.default_rng(1)
 X = rng.standard_normal((50, 2))
-y = np.array([-1]*25+[1]*25)
-X[y==1] += 1
-fig, ax = subplots(figsize=(8,8))
-ax.scatter(X[:,0],
-           X[:,1],
-           c=y,
-           cmap=cm.coolwarm);
-
+y = np.array([-1] * 25 + [1] * 25)
+X[y == 1] += 1
+fig, ax = subplots(figsize=(8, 8))
+ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cm.coolwarm);
 ```
+
 They are not.  We now fit the classifier.
 
-```{python}
-svm_linear = SVC(C=10, kernel='linear')
+```python
+svm_linear = SVC(C=10, kernel="linear")
 svm_linear.fit(X, y)
-
 ```
-    
- 
+
 The support vector classifier with two features can
 be visualized by plotting values of its *decision function*.
 We have included a function for this in the `ISLP` package (inspired by a similar
 example in the `sklearn` docs).
 
-```{python}
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X,
-         y,
-         svm_linear,
-         ax=ax)
-
+```python
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X, y, svm_linear, ax=ax)
 ```
- 
+
 The decision
 boundary between the two classes is linear (because we used the
 argument `kernel='linear'`). The support vectors are marked with `+`
@@ -99,90 +97,79 @@ and the remaining observations are plotted as circles.
 
 What if we instead used a smaller value of the cost parameter?
 
-```{python}
-svm_linear_small = SVC(C=0.1, kernel='linear')
+```python
+svm_linear_small = SVC(C=0.1, kernel="linear")
 svm_linear_small.fit(X, y)
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X,
-         y,
-         svm_linear_small,
-         ax=ax)
-
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X, y, svm_linear_small, ax=ax)
 ```
+
 With  a smaller value of the cost parameter, we
 obtain a larger number of support vectors, because the margin is now
 wider. For linear kernels, we can extract the
 coefficients of the linear decision boundary as follows:
 
-```{python}
+```python
 svm_linear.coef_
-
 ```
-    
- 
+
 Since the support vector machine is an estimator in `sklearn`, we
 can use the usual machinery to tune it.
 
-```{python}
-kfold = skm.KFold(5, 
-                  random_state=0,
-                  shuffle=True)
-grid = skm.GridSearchCV(svm_linear,
-                        {'C':[0.001,0.01,0.1,1,5,10,100]},
-                        refit=True,
-                        cv=kfold,
-                        scoring='accuracy')
+```python
+kfold = skm.KFold(5, random_state=0, shuffle=True)
+grid = skm.GridSearchCV(
+    svm_linear,
+    {"C": [0.001, 0.01, 0.1, 1, 5, 10, 100]},
+    refit=True,
+    cv=kfold,
+    scoring="accuracy",
+)
 grid.fit(X, y)
 grid.best_params_
-
 ```
-    
- 
+
 We can easily access the cross-validation errors for each of these models
 in  `grid.cv_results_`. This prints out a lot of detail, so we
 extract the accuracy results only.
 
-```{python}
-grid.cv_results_[('mean_test_score')]
-
+```python
+grid.cv_results_[("mean_test_score")]
 ```
+
 We see that  `C=1` results in the highest cross-validation
 accuracy of 0.74, though
 the accuracy is the same for several values of `C`.
 The classifier `grid.best_estimator_` can be used to predict the class
 label on a set of test observations. Let’s generate a test data set.
 
-```{python}
+```python
 X_test = rng.standard_normal((20, 2))
-y_test = np.array([-1]*10+[1]*10)
-X_test[y_test==1] += 1
-
+y_test = np.array([-1] * 10 + [1] * 10)
+X_test[y_test == 1] += 1
 ```
- 
+
 Now we predict the class labels of these test observations. Here we
 use the best model selected by cross-validation in order to make the
 predictions.
 
-```{python}
+```python
 best_ = grid.best_estimator_
 y_test_hat = best_.predict(X_test)
 confusion_table(y_test_hat, y_test)
-
 ```
-    
+
 Thus, with this value of `C`,
 70% of the test
 observations are correctly classified.  What if we had instead used
 `C=0.001`?
 
-```{python}
-svm_ = SVC(C=0.001,
-           kernel='linear').fit(X, y)
+```python
+svm_ = SVC(C=0.001, kernel="linear").fit(X, y)
 y_test_hat = svm_.predict(X_test)
 confusion_table(y_test_hat, y_test)
-
 ```
-    
+
 In this case 60% of test observations are correctly classified.
 
 We now consider a situation in which the two classes are linearly
@@ -191,64 +178,54 @@ separable. Then we can find an optimal separating hyperplane using the
 further separate the two classes in our simulated data so that they
 are linearly separable:
 
-```{python}
-X[y==1] += 1.9;
-fig, ax = subplots(figsize=(8,8))
-ax.scatter(X[:,0], X[:,1], c=y, cmap=cm.coolwarm);
-
+```python
+X[y == 1] += 1.9
+fig, ax = subplots(figsize=(8, 8))
+ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cm.coolwarm);
 ```
- 
+
 Now the observations are just barely linearly separable.
 
-```{python}
-svm_ = SVC(C=1e5, kernel='linear').fit(X, y)
+```python
+svm_ = SVC(C=1e5, kernel="linear").fit(X, y)
 y_hat = svm_.predict(X)
 confusion_table(y_hat, y)
-
 ```
-    
+
 We fit the
 support vector classifier and plot the resulting hyperplane, using a
 very large value of `C` so that no observations are
-misclassified. 
+misclassified.
 
-```{python}
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X,
-         y,
-         svm_,
-         ax=ax)
-
+```python
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X, y, svm_, ax=ax)
 ```
+
 Indeed no training errors were made and only three support vectors were used.
 In fact, the large value of `C` also means that these three support points are *on the margin*, and define it.
 One may wonder how good the classifier could be on test data that depends on only three data points!
- We now try a smaller
+We now try a smaller
 value of `C`.
 
-```{python}
-svm_ = SVC(C=0.1, kernel='linear').fit(X, y)
+```python
+svm_ = SVC(C=0.1, kernel="linear").fit(X, y)
 y_hat = svm_.predict(X)
 confusion_table(y_hat, y)
-
 ```
-    
+
 Using `C=0.1`, we again do not misclassify any training observations, but we
 also obtain a much wider margin and make use of twelve support
 vectors. These jointly define the orientation of the decision boundary, and since there are more of them, it is more stable. It seems possible that this model will perform better on test
 data than the model with `C=1e5` (and indeed, a simple experiment with a large test set would bear this out).
 
-```{python}
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X,
-         y,
-         svm_,
-         ax=ax)
-
+```python
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X, y, svm_, ax=ax)
 ```
- 
 
 ## Support Vector Machine
+
 In order to fit an SVM using a non-linear kernel, we once again use
 the `SVC()`  estimator. However, now we use a different value
 of the parameter `kernel`. To fit an SVM with a polynomial
@@ -256,117 +233,94 @@ kernel we use `kernel="poly"`, and to fit an SVM with a
 radial kernel  we use
 `kernel="rbf"`.  In the former case we also use the
 `degree` argument to specify a degree for the polynomial kernel
-(this is $d$ in (\ref{Ch9:eq:polyd})), and in the latter case we use
+(this is $d$ in (\\ref\{Ch9:eq:polyd})), and in the latter case we use
 `gamma` to specify a value of $\gamma$ for the radial basis
-kernel  (\ref{Ch9:eq:radial}).
+kernel  (\\ref\{Ch9:eq:radial}).
 
 We first generate some data with a non-linear class boundary, as follows:
 
-```{python}
+```python
 X = rng.standard_normal((200, 2))
 X[:100] += 2
 X[100:150] -= 2
-y = np.array([1]*150+[2]*50)
-
+y = np.array([1] * 150 + [2] * 50)
 ```
- 
+
 Plotting the data makes it clear that the class boundary is indeed non-linear.
 
-```{python}
-fig, ax = subplots(figsize=(8,8))
-ax.scatter(X[:,0],
-           X[:,1],
-           c=y,
-           cmap=cm.coolwarm);
-
+```python
+fig, ax = subplots(figsize=(8, 8))
+ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cm.coolwarm);
 ```
-    
- 
+
 The data is randomly split into training and testing groups. We then
 fit the training data using the `SVC()`  estimator with a
 radial kernel and $\gamma=1$:
 
-```{python}
-(X_train, 
- X_test,
- y_train,
- y_test) = skm.train_test_split(X,
-                                y,
-                                test_size=0.5,
-                                random_state=0)
+```python
+(X_train, X_test, y_train, y_test) = skm.train_test_split(
+    X,
+    y,
+    test_size=0.5,
+    random_state=0,
+)
 svm_rbf = SVC(kernel="rbf", gamma=1, C=1)
 svm_rbf.fit(X_train, y_train)
-
 ```
- 
+
 The plot shows that the resulting SVM has a decidedly non-linear
-boundary. 
+boundary.
 
-```{python}
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X_train,
-         y_train,
-         svm_rbf,
-         ax=ax)
-
+```python
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X_train, y_train, svm_rbf, ax=ax)
 ```
- 
+
 We can see from the figure that there are a fair number of training
 errors in this SVM fit.  If we increase the value of `C`, we
 can reduce the number of training errors. However, this comes at the
 price of a more irregular decision boundary that seems to be at risk
 of overfitting the data.
 
-```{python}
+```python
 svm_rbf = SVC(kernel="rbf", gamma=1, C=1e5)
 svm_rbf.fit(X_train, y_train)
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X_train,
-         y_train,
-         svm_rbf,
-         ax=ax)
-
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X_train, y_train, svm_rbf, ax=ax)
 ```
- 
+
 We can perform cross-validation using `skm.GridSearchCV()`  to select the
 best choice of $\gamma$ and `C` for an SVM with a radial
 kernel:
 
-```{python}
-kfold = skm.KFold(5, 
-                  random_state=0,
-                  shuffle=True)
-grid = skm.GridSearchCV(svm_rbf,
-                        {'C':[0.1,1,10,100,1000],
-                         'gamma':[0.5,1,2,3,4]},
-                        refit=True,
-                        cv=kfold,
-                        scoring='accuracy');
+```python
+kfold = skm.KFold(5, random_state=0, shuffle=True)
+grid = skm.GridSearchCV(
+    svm_rbf,
+    {"C": [0.1, 1, 10, 100, 1000], "gamma": [0.5, 1, 2, 3, 4]},
+    refit=True,
+    cv=kfold,
+    scoring="accuracy",
+)
 grid.fit(X_train, y_train)
 grid.best_params_
-
 ```
-    
+
 The best choice of parameters under five-fold CV is achieved at `C=1`
 and `gamma=0.5`, though several other values also achieve the same
 value.
 
-```{python}
+```python
 best_svm = grid.best_estimator_
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X_train,
-         y_train,
-         best_svm,
-         ax=ax)
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X_train, y_train, best_svm, ax=ax)
 
 y_hat_test = best_svm.predict(X_test)
 confusion_table(y_hat_test, y_test)
-
 ```
-    
+
 With these parameters, 12% of test
 observations are misclassified by this SVM.
-
 
 ## ROC Curves
 
@@ -378,7 +332,7 @@ classifier, the fitted value for an observation $X= (X_1, X_2, \ldots,
 X_p)^T$ takes the form $\hat{\beta}_0 + \hat{\beta}_1 X_1 +
 \hat{\beta}_2 X_2 + \ldots + \hat{\beta}_p X_p$. For an SVM with a
 non-linear kernel, the equation that yields the fitted value is given
-in  (\ref{Ch9:eq:svmip}). The sign of the fitted value
+in  (\\ref\{Ch9:eq:svmip}). The sign of the fitted value
 determines on which side of the decision boundary the observation
 lies. Therefore, the relationship between the fitted value and the
 class prediction for a given observation is simple: if the fitted
@@ -395,70 +349,45 @@ by a model matrix $X$ and labels $y$. The argument `name` is used in the legend,
 while `color` is used for the color of the line. Results are plotted
 on our axis object `ax`.
 
-```{python}
-fig, ax = subplots(figsize=(8,8))
-roc_curve(best_svm,
-          X_train,
-          y_train,
-          name='Training',
-          color='r',
-          ax=ax);
-
+```python
+fig, ax = subplots(figsize=(8, 8))
+roc_curve(best_svm, X_train, y_train, name="Training", color="r", ax=ax);
 ```
- In this example, the SVM appears to provide accurate predictions. By increasing
+
+In this example, the SVM appears to provide accurate predictions. By increasing
 $\gamma$ we can produce a more flexible fit and generate further
 improvements in accuracy.
 
-```{python}
-svm_flex = SVC(kernel="rbf", 
-              gamma=50,
-              C=1)
+```python
+svm_flex = SVC(kernel="rbf", gamma=50, C=1)
 svm_flex.fit(X_train, y_train)
-fig, ax = subplots(figsize=(8,8))
-roc_curve(svm_flex,
-          X_train,
-          y_train,
-          name='Training $\gamma=50$',
-          color='r',
-          ax=ax);
-
+fig, ax = subplots(figsize=(8, 8))
+roc_curve(svm_flex, X_train, y_train, name=r"Training $\gamma=50$", color="r", ax=ax);
 ```
- 
+
 However, these ROC curves are all on the training data. We are really
 more interested in the level of prediction accuracy on the test
 data. When we compute the ROC curves on the test data, the model with
 $\gamma=0.5$ appears to provide the most accurate results.
 
-```{python}
-roc_curve(svm_flex,
-          X_test,
-          y_test,
-          name='Test $\gamma=50$',
-          color='b',
-          ax=ax)
+```python
+roc_curve(svm_flex, X_test, y_test, name=r"Test $\gamma=50$", color="b", ax=ax)
 fig;
-
 ```
- 
+
 Let’s look at our tuned SVM.
 
-```{python}
-fig, ax = subplots(figsize=(8,8))
-for (X_, y_, c, name) in zip(
-     (X_train, X_test),
-     (y_train, y_test),
-     ('r', 'b'),
-     ('CV tuned on training',
-      'CV tuned on test')):
-    roc_curve(best_svm,
-              X_,
-              y_,
-              name=name,
-              ax=ax,
-              color=c)
-
+```python
+fig, ax = subplots(figsize=(8, 8))
+for X_, y_, c, name in zip(
+    (X_train, X_test),
+    (y_train, y_test),
+    ("r", "b"),
+    ("CV tuned on training", "CV tuned on test"),
+):
+    roc_curve(best_svm, X_, y_, name=name, ax=ax, color=c)
 ```
- 
+
 ## SVM with Multiple Classes
 
 If the response is a factor containing more than two levels, then the
@@ -468,35 +397,26 @@ or one-versus-rest {One-versus-rest is also known as one-versus-all.} (when `dec
 We explore that setting briefly here by
 generating a third class of observations.
 
-```{python}
+```python
 rng = np.random.default_rng(123)
 X = np.vstack([X, rng.standard_normal((50, 2))])
-y = np.hstack([y, [0]*50])
-X[y==0,1] += 2
-fig, ax = subplots(figsize=(8,8))
-ax.scatter(X[:,0], X[:,1], c=y, cmap=cm.coolwarm);
-
+y = np.hstack([y, [0] * 50])
+X[y == 0, 1] += 2
+fig, ax = subplots(figsize=(8, 8))
+ax.scatter(X[:, 0], X[:, 1], c=y, cmap=cm.coolwarm);
 ```
- 
+
 We now fit an SVM to the data:
 
-```{python}
-svm_rbf_3 = SVC(kernel="rbf",
-                C=10,
-                gamma=1,
-                decision_function_shape='ovo');
+```python
+svm_rbf_3 = SVC(kernel="rbf", C=10, gamma=1, decision_function_shape="ovo")
 svm_rbf_3.fit(X, y)
-fig, ax = subplots(figsize=(8,8))
-plot_svm(X,
-         y,
-         svm_rbf_3,
-         scatter_cmap=cm.tab10,
-         ax=ax)
-
+fig, ax = subplots(figsize=(8, 8))
+plot_svm(X, y, svm_rbf_3, scatter_cmap=cm.tab10, ax=ax)
 ```
+
 The `sklearn.svm` library can also be used to perform support vector
 regression with a numerical response using the  estimator `SupportVectorRegression()`.
-
 
 ## Application to Gene Expression Data
 
@@ -508,12 +428,11 @@ and `ytrain`, and testing data, `xtest` and `ytest`.
 
 We examine the dimension of the data:
 
-```{python}
-Khan = load_data('Khan')
-Khan['xtrain'].shape, Khan['xtest'].shape
-
+```python
+Khan = load_data("Khan")
+Khan["xtrain"].shape, Khan["xtest"].shape
 ```
-    
+
 This data set consists of expression measurements for 2,308
 genes. The training and test sets consist of 63 and 20
 observations, respectively.
@@ -522,17 +441,15 @@ We will use a support vector approach to predict cancer subtype using
 gene expression measurements.  In this data set, there is a very
 large number of features relative to the number of observations. This
 suggests that we should use a linear kernel, because the additional
-flexibility that will result from using a polynomial or radial kernel 
-is unnecessary. 
+flexibility that will result from using a polynomial or radial kernel
+is unnecessary.
 
-```{python}
-khan_linear = SVC(kernel='linear', C=10)
-khan_linear.fit(Khan['xtrain'], Khan['ytrain'])
-confusion_table(khan_linear.predict(Khan['xtrain']),
-                Khan['ytrain'])
-
+```python
+khan_linear = SVC(kernel="linear", C=10)
+khan_linear.fit(Khan["xtrain"], Khan["ytrain"])
+confusion_table(khan_linear.predict(Khan["xtrain"]), Khan["ytrain"])
 ```
-    
+
 We  see that there are *no* training
 errors. In fact, this is not surprising, because the large number of
 variables relative to the number of observations implies that it is
@@ -540,12 +457,8 @@ easy to find hyperplanes that fully separate the classes. We are more
 interested in the support vector classifier’s performance on the
 test observations.
 
-```{python}
-confusion_table(khan_linear.predict(Khan['xtest']),
-                Khan['ytest'])
-
+```python
+confusion_table(khan_linear.predict(Khan["xtest"]), Khan["ytest"])
 ```
-    
+
 We see that using `C=10` yields two test set errors on these data.
-
-

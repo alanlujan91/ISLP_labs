@@ -1,6 +1,9 @@
 # ISLP_labs
+
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+
 [![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
+
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 ## Authors
@@ -10,11 +13,10 @@
 - Robert Tibshirani
 
 - Daniela Witten
-  
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/intro-stat-learning/ISLP_labs/v2.2)
 
-
-Up-to-date version of labs for ISLP. 
+Up-to-date version of labs for ISLP.
 
 This repo will track labs for ISLP as their source code changes.  The
 intent is that building a conda environment with
@@ -32,19 +34,20 @@ The labs can now be run from this directory:
 jupyter lab Ch02-statlearning-lab.ipynb
 ```
 
-
 # Zip / tarball
 
 You can download all the labs as a `.zip` or `.tar.gz` [here](https://github.com/intro-stat-learning/ISLP_labs/releases/tag/v2.2)
-
 
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+
 <!-- prettier-ignore-start -->
+
 <!-- markdownlint-disable -->
+
 <table>
   <tbody>
     <tr>
@@ -57,6 +60,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 </table>
 
 <!-- markdownlint-restore -->
+
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
